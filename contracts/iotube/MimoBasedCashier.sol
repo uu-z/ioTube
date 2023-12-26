@@ -8,6 +8,8 @@ interface IMimoFactory {
 
 contract MimoBasedCashier is Ownable {
     event Exchanged(address indexed recipient, address indexed srcToken, uint256 amountIn, uint256 amountOut);
+    event Received(address, uint);
+
     uint256 public maxAmount;
     uint256 public transactionFee;
     uint8 public taxRate;
@@ -19,6 +21,7 @@ contract MimoBasedCashier is Ownable {
         require(operators[msg.sender], "invalid operator");
         _;
     }
+
 
     constructor(address _factory, uint256 _maxAmount, uint256 _fee, uint8 _taxRate) Ownable(msg.sender) {
         maxAmount = _maxAmount;
@@ -34,6 +37,11 @@ contract MimoBasedCashier is Ownable {
         }
         paths[_token] = _path;
     }
+
+    function setOperator(address _operator) public onlyOwner {
+        operators[_operator] = true;
+    }
+
 
     function pathOf(address _token) public view returns (address[] memory) {
         return paths[_token];
@@ -61,10 +69,16 @@ contract MimoBasedCashier is Ownable {
         } else {
             amountOut = 0;
         }
+
+        transfers[id] = true;
         emit Exchanged(_recipient, _token, _amountIn, amountOut);
     }
 
     function withdraw() public onlyOwner {
         payable(msg.sender).transfer(address(this).balance);
+    }
+
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
     }
 }
